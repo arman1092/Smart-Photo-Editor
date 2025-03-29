@@ -18,10 +18,6 @@
             justify-content: center;
             height: 100vh;
         }
-        h1 {
-            font-size: 24px;
-            margin-bottom: 15px;
-        }
         .container {
             max-width: 500px;
             width: 90%;
@@ -41,28 +37,43 @@
             justify-content: center;
             border-radius: 5px;
             overflow: hidden;
+            position: relative;
         }
         canvas {
             max-width: 100%;
             max-height: 100%;
             border-radius: 5px;
         }
-        .controls {
+        .controls, .bottom-buttons {
             display: flex;
-            flex-wrap: wrap;
             justify-content: center;
             gap: 10px;
             margin: 15px 0;
         }
-        input, button {
+        .filter-options {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+            width: 100%;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .filter-options button {
+            display: inline-block;
+            margin-right: 5px;
+        }
+        button {
             padding: 10px 15px;
             border: none;
             cursor: pointer;
             border-radius: 5px;
             font-size: 14px;
             font-weight: bold;
-        }
-        button {
             background: #00ffcc;
             color: #000;
             transition: 0.3s;
@@ -70,31 +81,30 @@
         button:hover {
             background: #00997a;
         }
-        #upload {
-            background: #444;
-            color: #fff;
-        }
-        .bottom-buttons {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
-    <h1> Smart Photo Editor</h1>
+    <h1>Smart Photo Editor</h1>
     <div class="container">
         <input type="file" id="upload" accept="image/*">
         <div class="image-container">
             <canvas id="canvas"></canvas>
+            <div class="filter-options" id="filter-options">
+                <button onclick="applyFilter('grayscale')">Grayscale</button>
+                <button onclick="applyFilter('invert')">Invert</button>
+                <button onclick="applyFilter('warmtone')">Warm Tone</button>
+                <button onclick="applyFilter('blur')">Blur</button>
+                <button onclick="applyFilter('brightness')">Brightness</button>
+                <button onclick="applyFilter('contrast')">Contrast</button>
+                <button onclick="applyFilter('sepia')">Sepia</button>
+                <button onclick="applyFilter('hue-rotate')">Hue Rotate</button>
+                <button onclick="resetImage()">Reset</button>
+            </div>
         </div>
         <div class="controls">
-            <button onclick="applyFilter('grayscale')">Grayscale</button>
-            <button onclick="applyFilter('invert')">Invert</button>
-            <button onclick="applyFilter('sepia')">Sepia</button>
-            <button onclick="applyFilter('blur')">Blur</button>
-            <button onclick="resetImage()">Reset</button>
+            <button onclick="toggleFilters()">Filters</button>
+            <button onclick="toggleBG()">BG</button>
+            <button onclick="toggleText()">Text</button>
         </div>
         <div class="bottom-buttons">
             <button onclick="downloadImage()">Download</button>
@@ -108,7 +118,7 @@
         let ctx = canvas.getContext('2d');
         let img = new Image();
         let originalImg = null;
-        let imageContainer = document.querySelector(".image-container");
+        let filterOptions = document.getElementById('filter-options');
 
         document.getElementById('upload').addEventListener('change', function(event) {
             let file = event.target.files[0];
@@ -122,11 +132,8 @@
         });
 
         img.onload = function() {
-            let maxWidth = imageContainer.clientWidth;
-            let maxHeight = imageContainer.clientHeight;
-            let ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
-            canvas.width = img.width * ratio;
-            canvas.height = img.height * ratio;
+            canvas.width = img.width;
+            canvas.height = img.height;
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             originalImg = ctx.getImageData(0, 0, canvas.width, canvas.height);
         };
@@ -136,8 +143,12 @@
             let filterMap = {
                 'grayscale': 'grayscale(100%)',
                 'invert': 'invert(100%)',
-                'sepia': 'sepia(100%)',
-                'blur': 'blur(3px)'
+                'warmtone': 'sepia(100%)',
+                'blur': 'blur(3px)',
+                'brightness': 'brightness(150%)',
+                'contrast': 'contrast(200%)',
+                'sepia': 'sepia(80%)',
+                'hue-rotate': 'hue-rotate(90deg)'
             };
             ctx.filter = filterMap[filter] || 'none';
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -145,6 +156,18 @@
 
         function resetImage() {
             ctx.putImageData(originalImg, 0, 0);
+        }
+
+        function toggleFilters() {
+            filterOptions.style.display = (filterOptions.style.display === 'block') ? 'none' : 'block';
+        }
+
+        function toggleBG() {
+            alert("BG option clicked! Functionality can be added.");
+        }
+
+        function toggleText() {
+            alert("Text option clicked! Functionality can be added.");
         }
 
         function downloadImage() {
@@ -162,34 +185,45 @@
         recognition.onresult = function(event) {
             let transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
             console.log('Voice Command:', transcript);
-            
-            if (transcript.includes('grayscale') || transcript.includes('gray scale') || transcript.includes('grey scale')) {
+
+            if (transcript.includes('filters') || transcript.includes('show filters')) {
+                toggleFilters();
+            } else if (transcript.includes('grayscale') || transcript.includes('grey scale')) {
                 applyFilter('grayscale');
             } else if (transcript.includes('invert') || transcript.includes('negative')) {
                 applyFilter('invert');
-            } else if (transcript.includes('sepia') || transcript.includes('sepia tone') || transcript.includes('old effect')) {
-                applyFilter('sepia');
-            } else if (transcript.includes('blur')) {
+            } else if (transcript.includes('warm tone') || transcript.includes('warm') || transcript.includes('golden')) {
+                applyFilter('warmtone');
+            } else if (transcript.includes('blur') || transcript.includes('blurry') || transcript.includes('blurred')) {
                 applyFilter('blur');
-            } else if (transcript.includes('reset') || transcript.includes('original')) {
+            } else if (transcript.includes('brightness')) {
+                applyFilter('brightness');
+            } else if (transcript.includes('contrast')) {
+                applyFilter('contrast');
+            } else if (transcript.includes('sepia')) {
+                applyFilter('sepia');
+            } else if (transcript.includes('hue') || transcript.includes('color change')) {
+                applyFilter('hue-rotate');
+            } else if (transcript.includes('reset') || transcript.includes('clear') || transcript.includes('original')) {
                 resetImage();
-            } else if (transcript.includes('download') || transcript.includes('save photo') || transcript.includes('save image')) {
+            } else if (transcript.includes('download') || transcript.includes('save image')) {
                 downloadImage();
-            } else if (transcript.includes('stop voice control') || transcript.includes('stop listening')) {
-                stopListening();
-            } else {
-                console.log('Command not recognized:', transcript);
+            } else if (transcript.includes('background') || transcript.includes('bg')) {
+                toggleBG();
+            } else if (transcript.includes('text')) {
+                toggleText();
+            }
+            else if (transcript.includes('choose file') || transcript.includes('upload image') || transcript.includes('open file')) {
+                document.getElementById('upload').click();
             }
         };
 
         function startListening() {
             recognition.start();
-            console.log('Listening for commands...');
         }
 
         function stopListening() {
             recognition.stop();
-            console.log('Voice control stopped.');
         }
     </script>
 </body>
